@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "types": [
+      "https://raw.githubusercontent.com/proudust/deno-gas-types/main/types/index.d.ts"
+    ]
+  },
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
+  "tasks": {
+    "build": "deno run --allow-env --allow-net --allow-read --allow-run --allow-write _build.ts",
+    "deploy": "deno task build && deno task build deploy"
+  }
+}
