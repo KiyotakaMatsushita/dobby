@@ -1,10 +1,40 @@
 import { ai_fn } from "./core/ai_fn.ts";
+import { AIModelName } from "./core/llm_model.ts";
 import { OpenAI } from "./core/provider/openai.ts";
 
+interface AIConfig {
+  model: AIModelName;
+  methodName: string;
+  maxTokens: number;
+}
+
+export const AI_CONFIGS: AIConfig[] = [
+  {
+    model: OpenAI.MODELS.GPT35TURBO,
+    maxTokens: 2000,
+    methodName: "GPT35_2000",
+  },
+  { model: OpenAI.MODELS.GPT4_0613, maxTokens: 1000, methodName: "GPT4_1000" },
+  { model: OpenAI.MODELS.GPT4_0613, maxTokens: 500, methodName: "GPT4_500" },
+  { model: OpenAI.MODELS.GPT4_0613, maxTokens: 250, methodName: "GPT4_250" },
+  { model: OpenAI.MODELS.GPT4_0613, maxTokens: 100, methodName: "GPT4_100" },
+];
+
 class MyDobby {
-  @ai_fn({ model: OpenAI.MODELS.GPT35TURBO })
-  GPT(content: string): string {
-    return content;
+  [key: string]: (...args: any[]) => string;
+
+  constructor() {
+    // メタプログラミングを使用して、動的に関数を追加する
+    for (const config of AI_CONFIGS) {
+      this[config.methodName] = (content: string) => {
+        return this._genericAiFunction(content, config);
+      };
+    }
+  }
+
+  // 汎用AI関数
+  _genericAiFunction(content: string, config: AIConfig): string {
+    return `@ai_fn({ model: ${config.model}, maxTokens: ${config.maxTokens} }) ${content}`;
   }
 
   @ai_fn()
@@ -67,21 +97,24 @@ class MyDobby {
     `;
   }
 }
-const instance = new MyDobby();
 
-export function GPT(content: string): string {
-  return instance.GPT(content) || "";
+export const dobby = new MyDobby();
+
+export function generateFunction(methodName: string) {
+  return (content: string) => dobby[methodName](content);
 }
 
 export function copywriting_for_listing_advertising(order: string): string {
-  const background = order.match(/#前提: (.*)/)?.[1] || "";
-  const advertiser = order.match(/#広告主: (.*)/)?.[1] || "";
-  const product = order.match(/#販売商品: (.*)/)?.[1] || "";
-  const prohibited_words = order.match(/#禁止ワード: (.*)/)?.[1] || "";
-  return instance.copywriting_for_listing_advertising({
+  const matches = order.match(
+    /#前提: (.*)\n#広告主: (.*)\n#販売商品: (.*)\n#禁止ワード: (.*)/,
+  );
+  if (!matches) return "";
+
+  const [_, background, advertiser, product, prohibited_words] = matches;
+  return dobby.copywriting_for_listing_advertising({
     background,
     advertiser,
     product,
     prohibited_words,
-  }) || "";
+  });
 }
